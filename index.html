@@ -1280,14 +1280,14 @@
   let currentUser = users[0]; // Default to admin
   
   const branchWhats = {
-    "Crispy Chicken Khalidiya":"971569494764",
-    "Crispy Chicken Muroor":"971505414641",
-    "Crispy Chicken Shabiya 11":"971562690688",
-    "Crispy Chicken Al Barsha":"971569659524",
-    "Crispy Chicken Al Satwa":"971567970685",
-    "Crispy Chicken Electra":"971563866859",
-    "Crispy Chicken Hamdan":"971556886650",
-    "Crispy Chicken-Al Khalidiya":"971569494764"
+    "Crispy Chicken Khalidiya": "971569494764",
+    "Crispy Chicken Muroor": "971505414641",
+    "Crispy Chicken Shabiya 11": "971562690688",
+    "Crispy Chicken Al Barsha": "971569659524",
+    "Crispy Chicken Al Satwa": "971567970685",
+    "Crispy Chicken Electra": "971563866859",
+    "Crispy Chicken Hamdan": "971556886650",
+    "Crispy Chicken-Al Khalidiya": "971569494764"
   };
   const branchesList = Object.keys(branchWhats);
   
@@ -2455,4 +2455,1178 @@
     document.getElementById('topBranch').textContent = topBranch || '-';
     document.getElementById('topCase').textContent = topCase || '-';
     document.getElementById('caseRate').textContent = caseRate.toFixed(1) + '%';
-    document.getElementById('avgOriginalAmount').textContent = 'AED ' + avgOriginal
+    document.getElementById('avgOriginalAmount').textContent = 'AED ' + avgOriginal.toFixed(2);
+    
+    // Update charts
+    updateSummaryCharts();
+  }
+  
+  function updateSummaryCharts() {
+    // Amount Chart
+    const amountCtx = document.getElementById('amountChart').getContext('2d');
+    if (amountChart) amountChart.destroy();
+    
+    amountChart = new Chart(amountCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Original', 'Compensation', 'Refunded', 'Net'],
+        datasets: [{
+          label: 'Amount (AED)',
+          data: [
+            tickets.reduce((sum, t) => sum + (t.originalAmount || 0), 0),
+            tickets.reduce((sum, t) => sum + (t.compensation || 0), 0),
+            tickets.reduce((sum, t) => sum + (t.refundedAmount || 0), 0),
+            tickets.reduce((sum, t) => sum + (t.compensation || 0), 0) - tickets.reduce((sum, t) => sum + (t.refundedAmount || 0), 0)
+          ],
+          backgroundColor: ['#0d6efd', '#dc3545', '#28a745', '#6f42c1']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+    
+    // Status Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    if (statusChart) statusChart.destroy();
+    
+    statusChart = new Chart(statusCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Open', 'Sent', 'Closed', 'Rejected'],
+        datasets: [{
+          data: [
+            tickets.filter(t => t.status === 'Open').length,
+            tickets.filter(t => t.status === 'Sent').length,
+            tickets.filter(t => t.status === 'Closed').length,
+            tickets.filter(t => t.status === 'Rejected').length
+          ],
+          backgroundColor: ['#0d6efd', '#ffc107', '#28a745', '#dc3545']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        }
+      }
+    });
+    
+    // Platform Tickets Chart
+    const platformTicketsCtx = document.getElementById('platformTicketsChart').getContext('2d');
+    if (platformTicketsChart) platformTicketsChart.destroy();
+    
+    platformTicketsChart = new Chart(platformTicketsCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Noon', 'Careem'],
+        datasets: [{
+          label: 'Cases',
+          data: [
+            tickets.filter(t => t.platform === 'Noon').length,
+            tickets.filter(t => t.platform === 'Careem').length
+          ],
+          backgroundColor: ['#0d6efd', '#17a2b8']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+    
+    // Platform Compensation Chart
+    const platformCompCtx = document.getElementById('platformCompensationChart').getContext('2d');
+    if (platformCompensationChart) platformCompensationChart.destroy();
+    
+    platformCompensationChart = new Chart(platformCompCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Noon', 'Careem'],
+        datasets: [{
+          label: 'Compensation (AED)',
+          data: [
+            tickets.filter(t => t.platform === 'Noon').reduce((sum, t) => sum + (t.compensation || 0), 0),
+            tickets.filter(t => t.platform === 'Careem').reduce((sum, t) => sum + (t.compensation || 0), 0)
+          ],
+          backgroundColor: ['#dc3545', '#fd7e14']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+    
+    // Branch Cases Chart
+    const branchCounts = {};
+    tickets.forEach(t => {
+      branchCounts[t.branch] = (branchCounts[t.branch] || 0) + 1;
+    });
+    
+    const branchCasesCtx = document.getElementById('branchCasesChart').getContext('2d');
+    if (branchCasesChart) branchCasesChart.destroy();
+    
+    branchCasesChart = new Chart(branchCasesCtx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(branchCounts).slice(0, 5), // Top 5 branches
+        datasets: [{
+          label: 'Cases',
+          data: Object.values(branchCounts).slice(0, 5),
+          backgroundColor: '#d32f2f'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+    
+    // Case Types Chart
+    const caseCounts = {};
+    tickets.forEach(t => {
+      const type = classifyCase(t.issue);
+      caseCounts[type] = (caseCounts[type] || 0) + 1;
+    });
+    
+    const caseTypesCtx = document.getElementById('caseTypesChart').getContext('2d');
+    if (caseTypesChart) caseTypesChart.destroy();
+    
+    caseTypesChart = new Chart(caseTypesCtx, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(caseCounts),
+        datasets: [{
+          data: Object.values(caseCounts),
+          backgroundColor: ['#d32f2f', '#ff7043', '#ffc107', '#4caf50', '#2196f3']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        }
+      }
+    });
+  }
+  
+  // ===== Case Analysis =====
+  function classifyCase(issue) {
+    const lowerIssue = issue.toLowerCase();
+    if (lowerIssue.includes('missing') || lowerIssue.includes('wrong') || lowerIssue.includes('incorrect')) {
+      return 'Missing/Incorrect';
+    } else if (lowerIssue.includes('spill') || lowerIssue.includes('damage') || lowerIssue.includes('broken')) {
+      return 'Spilled/Damaged';
+    } else if (lowerIssue.includes('late') || lowerIssue.includes('delay')) {
+      return 'Late Delivery';
+    } else if (lowerIssue.includes('quality') || lowerIssue.includes('taste') || lowerIssue.includes('cold')) {
+      return 'Food Quality';
+    } else {
+      return 'Other';
+    }
+  }
+  
+  function renderCaseAnalysis() {
+    // Group by branch
+    const branchData = {};
+    tickets.forEach(ticket => {
+      if (!branchData[ticket.branch]) {
+        branchData[ticket.branch] = {
+          totalCases: 0,
+          totalCompensation: 0,
+          cases: []
+        };
+      }
+      branchData[ticket.branch].totalCases++;
+      branchData[ticket.branch].totalCompensation += ticket.compensation || 0;
+      branchData[ticket.branch].cases.push(ticket);
+    });
+    
+    // Calculate case reasons for each branch
+    const branchAnalysis = {};
+    Object.keys(branchData).forEach(branch => {
+      const reasons = {
+        'Missing/Incorrect': 0,
+        'Spilled/Damaged': 0,
+        'Late Delivery': 0,
+        'Food Quality': 0,
+        'Other': 0
+      };
+      
+      branchData[branch].cases.forEach(ticket => {
+        const type = classifyCase(ticket.issue);
+        reasons[type]++;
+      });
+      
+      branchAnalysis[branch] = reasons;
+    });
+    
+    // Determine overall level
+    const totalCases = tickets.length;
+    const highThreshold = totalCases * 0.2; // 20% of total cases
+    const mediumThreshold = totalCases * 0.1; // 10% of total cases
+    
+    let level = 'Low';
+    let levelClass = 'badge-low';
+    
+    for (const branch in branchData) {
+      if (branchData[branch].totalCases > highThreshold) {
+        level = 'High';
+        levelClass = 'badge-high';
+        break;
+      } else if (branchData[branch].totalCases > mediumThreshold) {
+        level = 'Medium';
+        levelClass = 'badge-medium';
+      }
+    }
+    
+    document.getElementById('caseAnalysisBadge').textContent = level + ' Level';
+    document.getElementById('caseAnalysisBadge').className = 'case-badge ' + levelClass;
+    
+    // Render branch analysis
+    let html = '<div class="branch-analysis-grid">';
+    
+    Object.keys(branchData).forEach(branch => {
+      const data = branchData[branch];
+      const reasons = branchAnalysis[branch];
+      const totalReasons = Object.values(reasons).reduce((sum, count) => sum + count, 0);
+      
+      html += `
+        <div class="branch-card">
+          <h6>${branch}</h6>
+          <div class="branch-stats">
+            <div class="branch-stat-item">
+              <div class="branch-stat-value">${data.totalCases}</div>
+              <div class="branch-stat-label">Cases</div>
+            </div>
+            <div class="branch-stat-item">
+              <div class="branch-stat-value">AED ${data.totalCompensation.toFixed(2)}</div>
+              <div class="branch-stat-label">Compensation</div>
+            </div>
+            <div class="branch-stat-item">
+              <div class="branch-stat-value">${(data.totalCompensation / data.totalCases || 0).toFixed(2)}</div>
+              <div class="branch-stat-label">Avg/Case</div>
+            </div>
+            <div class="branch-stat-item">
+              <div class="branch-stat-value">${((data.totalCases / totalCases) * 100).toFixed(1)}%</div>
+              <div class="branch-stat-label">Share</div>
+            </div>
+          </div>
+          
+          <div class="case-reasons">
+            <h6>Case Reasons</h6>
+      `;
+      
+      Object.keys(reasons).forEach(reason => {
+        const count = reasons[reason];
+        const percentage = totalReasons > 0 ? (count / totalReasons) * 100 : 0;
+        
+        html += `
+          <div class="case-reason-item">
+            <div>${reason}</div>
+            <div class="case-reason-info">
+              <div class="case-reason-name">${count} cases</div>
+              <div class="case-reason-count">${percentage.toFixed(1)}%</div>
+              <div class="case-reason-bar">
+                <div class="case-reason-progress" style="width: ${percentage}%"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += `
+          </div>
+        </div>
+      `;
+    });
+    
+    html += '</div>';
+    
+    document.getElementById('branchAnalysisContainer').innerHTML = html;
+  }
+  
+  // ===== Charts =====
+  function renderCharts() {
+    // Branch Chart
+    const branchCounts = {};
+    tickets.forEach(t => {
+      branchCounts[t.branch] = (branchCounts[t.branch] || 0) + 1;
+    });
+    
+    const topBranches = Object.entries(branchCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+    
+    document.getElementById('topBranchLabel').textContent = `Top ${topBranches.length} branches`;
+    
+    const branchCtx = document.getElementById('branchChart').getContext('2d');
+    if (branchChart) branchChart.destroy();
+    
+    branchChart = new Chart(branchCtx, {
+      type: 'bar',
+      data: {
+        labels: topBranches.map(b => b[0]),
+        datasets: [{
+          label: 'Cases',
+          data: topBranches.map(b => b[1]),
+          backgroundColor: '#d32f2f'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+    
+    // Case Chart
+    const caseCounts = {};
+    tickets.forEach(t => {
+      const type = classifyCase(t.issue);
+      caseCounts[type] = (caseCounts[type] || 0) + 1;
+    });
+    
+    const topCases = Object.entries(caseCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+    
+    document.getElementById('topCaseLabel').textContent = `Top ${topCases.length} case types`;
+    
+    const caseCtx = document.getElementById('caseChart').getContext('2d');
+    if (caseChart) caseChart.destroy();
+    
+    caseChart = new Chart(caseCtx, {
+      type: 'doughnut',
+      data: {
+        labels: topCases.map(c => c[0]),
+        datasets: [{
+          data: topCases.map(c => c[1]),
+          backgroundColor: ['#d32f2f', '#ff7043', '#ffc107', '#4caf50', '#2196f3']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        }
+      }
+    });
+  }
+  
+  // ===== Ticket CRUD =====
+  function openAddModal() {
+    document.getElementById('modalTitle').textContent = 'Add Compensation Case';
+    document.getElementById('editingId').value = '';
+    document.getElementById('ticketForm').reset();
+    document.getElementById('imagePreview').style.display = 'none';
+    document.getElementById('f_shortLink').value = '';
+    document.getElementById('duplicateWarning').classList.remove('show');
+    
+    // Remove any existing base64 input
+    const base64Input = document.getElementById('f_evidenceBase64');
+    if (base64Input) base64Input.remove();
+    
+    new bootstrap.Modal(document.getElementById('ticketModal')).show();
+  }
+  
+  function editTicket(id) {
+    const ticket = tickets.find(t => t.id === id);
+    if (!ticket) return;
+    
+    document.getElementById('modalTitle').textContent = 'Edit Compensation Case';
+    document.getElementById('editingId').value = ticket.id;
+    document.getElementById('f_orderId').value = ticket.orderId;
+    document.getElementById('f_orderDate').value = ticket.orderDate;
+    document.getElementById('f_branch').value = ticket.branch;
+    document.getElementById('f_platform').value = ticket.platform;
+    document.getElementById('f_issue').value = ticket.issue;
+    document.getElementById('f_originalAmount').value = ticket.originalAmount;
+    document.getElementById('f_compensation').value = ticket.compensation;
+    document.getElementById('f_refundedAmount').value = ticket.refundedAmount || 0;
+    document.getElementById('f_isRefunded').checked = ticket.isRefunded || false;
+    document.getElementById('f_refundDate').value = ticket.refundDate || '';
+    document.getElementById('f_shortLink').value = ticket.shortLink || '';
+    document.getElementById('f_noEvidence').checked = ticket.noEvidence || false;
+    
+    // Handle evidence
+    if (ticket.evidence && ticket.evidence !== 'None') {
+      if (ticket.evidence.startsWith('data:image')) {
+        // Base64 image
+        const preview = document.getElementById('imagePreview');
+        preview.src = ticket.evidence;
+        preview.style.display = 'block';
+        
+        // Create hidden input for base64 data
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.id = 'f_evidenceBase64';
+        hiddenInput.value = ticket.evidence;
+        document.getElementById('ticketForm').appendChild(hiddenInput);
+      } else {
+        // URL link
+        document.getElementById('f_shortLink').value = ticket.evidence;
+      }
+    }
+    
+    new bootstrap.Modal(document.getElementById('ticketModal')).show();
+  }
+  
+  function closeTicket(id) {
+    const ticket = tickets.find(t => t.id === id);
+    if (!ticket) return;
+    
+    ticket.status = 'Closed';
+    if (save()) {
+      renderAll();
+      showNotif('Ticket closed successfully', 'success');
+      addToAuditTrail('Ticket Management', `Closed ticket ${ticket.orderId}`);
+    }
+  }
+  
+  function copyTicket(id) {
+    const ticket = tickets.find(t => t.id === id);
+    if (!ticket) return;
+    
+    const text = `Order ID: ${ticket.orderId}\nBranch: ${ticket.branch}\nPlatform: ${ticket.platform}\nIssue: ${ticket.issue}\nOriginal Amount: AED ${ticket.originalAmount}\nCompensation: AED ${ticket.compensation}`;
+    
+    navigator.clipboard.writeText(text).then(() => {
+      showNotif('Ticket details copied to clipboard', 'success');
+      addToAuditTrail('Ticket Management', `Copied ticket ${ticket.orderId}`);
+    }).catch(err => {
+      showNotif('Failed to copy ticket details', 'error');
+    });
+  }
+  
+  function sendEmail(id) {
+    const ticket = tickets.find(t => t.id === id);
+    if (!ticket) return;
+    
+    const subject = `Inquiry about Order #${ticket.orderId} from ${ticket.branch}`;
+    const body = `Hello,\n\nI'm writing to inquire about my order #${ticket.orderId} from ${ticket.branch}.\n\nOrder Details:\n- Order Date: ${formatDateISO(ticket.orderDate)}\n- Platform: ${ticket.platform}\n- Issue: ${ticket.issue}\n- Original Amount: AED ${ticket.originalAmount}\n- Compensation: AED ${ticket.compensation}\n\nPlease assist me with this matter.\n\nThank you.`;
+
+    const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = url;
+
+    addToAuditTrail('Communication', `Sent email for order ${ticket.orderId} from ${ticket.branch}`);
+  }
+  
+  function sendWhatsApp(id) {
+    const ticket = tickets.find(t => t.id === id);
+    if (!ticket) {
+      showNotif('Ticket not found', 'error');
+      return;
+    }
+
+    const branch = ticket.branch;
+    const phoneNumber = branchWhats[branch];
+    
+    if (!phoneNumber) {
+      showNotif('WhatsApp number not found for this branch', 'error');
+      console.error('Branch not found in branchWhats:', branch);
+      return;
+    }
+
+    const message = `Hello, I'm inquiring about my order #${ticket.orderId} from ${ticket.branch}. Order Date: ${formatDateISO(ticket.orderDate)}. Issue: ${ticket.issue}. Please assist me.`;
+
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+
+    addToAuditTrail('WhatsApp', `Sent WhatsApp for order ${ticket.orderId} to ${branch}`);
+  }
+  
+  function openIssueModal(id) {
+    const ticket = tickets.find(t => t.id === id);
+    if (!ticket) return;
+    
+    document.getElementById('issueText').textContent = ticket.issue;
+    new bootstrap.Modal(document.getElementById('issueModal')).show();
+  }
+  
+  // ===== Form Handling =====
+  document.getElementById('ticketForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const editingId = document.getElementById('editingId').value;
+    const orderId = document.getElementById('f_orderId').value.trim();
+    
+    // Check for duplicate order ID (only when creating new ticket)
+    if (!editingId) {
+      const duplicate = tickets.find(t => t.orderId === orderId);
+      if (duplicate) {
+        document.getElementById('duplicateWarning').textContent = 'Order ID already exists';
+        document.getElementById('duplicateWarning').classList.add('show');
+        return;
+      }
+    }
+    
+    // Get evidence
+    let evidence = 'None';
+    if (!document.getElementById('f_noEvidence').checked) {
+      const base64Input = document.getElementById('f_evidenceBase64');
+      if (base64Input) {
+        evidence = base64Input.value;
+      } else if (document.getElementById('f_shortLink').value) {
+        evidence = document.getElementById('f_shortLink').value;
+      }
+    }
+    
+    const ticketData = {
+      orderId: orderId,
+      orderDate: document.getElementById('f_orderDate').value,
+      branch: document.getElementById('f_branch').value,
+      platform: document.getElementById('f_platform').value,
+      issue: document.getElementById('f_issue').value,
+      originalAmount: parseFloat(document.getElementById('f_originalAmount').value),
+      compensation: parseFloat(document.getElementById('f_compensation').value),
+      status: 'Open',
+      evidence: evidence,
+      refundedAmount: parseFloat(document.getElementById('f_refundedAmount').value) || 0,
+      isRefunded: document.getElementById('f_isRefunded').checked,
+      refundDate: document.getElementById('f_refundDate').value || null,
+      shortLink: document.getElementById('f_shortLink').value || '',
+      noEvidence: document.getElementById('f_noEvidence').checked,
+      dateCreated: new Date().toISOString()
+    };
+    
+    if (editingId) {
+      // Update existing ticket
+      const index = tickets.findIndex(t => t.id === editingId);
+      if (index > -1) {
+        tickets[index] = { ...tickets[index], ...ticketData };
+        showNotif('Ticket updated successfully', 'success');
+        addToAuditTrail('Ticket Management', `Updated ticket ${ticketData.orderId}`);
+      }
+    } else {
+      // Add new ticket
+      ticketData.id = Date.now().toString();
+      tickets.unshift(ticketData);
+      showNotif('Ticket added successfully', 'success');
+      addToAuditTrail('Ticket Management', `Added ticket ${ticketData.orderId}`);
+    }
+    
+    if (save()) {
+      renderAll();
+      bootstrap.Modal.getInstance(document.getElementById('ticketModal')).hide();
+    }
+  });
+  
+  // Check for duplicate order ID in real-time
+  document.getElementById('f_orderId').addEventListener('input', function() {
+    const orderId = this.value.trim();
+    const editingId = document.getElementById('editingId').value;
+    
+    if (!editingId && orderId) {
+      const duplicate = tickets.find(t => t.orderId === orderId);
+      const warning = document.getElementById('duplicateWarning');
+      
+      if (duplicate) {
+        warning.textContent = 'Order ID already exists';
+        warning.classList.add('show');
+      } else {
+        warning.classList.remove('show');
+      }
+    } else {
+      document.getElementById('duplicateWarning').classList.remove('show');
+    }
+  });
+  
+  // ===== Rejection Handling =====
+  function openRejectionModal() {
+    // Populate cases dropdown
+    const caseSelect = document.getElementById('rejectionCase');
+    caseSelect.innerHTML = '<option value="">اختر حالة</option>';
+    
+    tickets.filter(t => t.status !== 'Rejected').forEach(ticket => {
+      const option = document.createElement('option');
+      option.value = ticket.id;
+      option.textContent = `${ticket.orderId} - ${ticket.branch}`;
+      caseSelect.appendChild(option);
+    });
+    
+    document.getElementById('rejectionForm').reset();
+    new bootstrap.Modal(document.getElementById('rejectionModal')).show();
+  }
+  
+  function openRejectionModalForCase(id) {
+    const ticket = tickets.find(t => t.id === id);
+    if (!ticket) return;
+    
+    // Populate cases dropdown with selected ticket
+    const caseSelect = document.getElementById('rejectionCase');
+    caseSelect.innerHTML = '<option value="">اختر حالة</option>';
+    
+    const option = document.createElement('option');
+    option.value = ticket.id;
+    option.textContent = `${ticket.orderId} - ${ticket.branch}`;
+    option.selected = true;
+    caseSelect.appendChild(option);
+    
+    document.getElementById('rejectionForm').reset();
+    new bootstrap.Modal(document.getElementById('rejectionModal')).show();
+  }
+  
+  document.getElementById('rejectionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const caseId = document.getElementById('rejectionCase').value;
+    const reason = document.getElementById('rejectionReason').value;
+    const notes = document.getElementById('rejectionNotes').value;
+    const sendEmail = document.getElementById('sendEmail').checked;
+    const sendWhatsApp = document.getElementById('sendWhatsApp').checked;
+    
+    const ticket = tickets.find(t => t.id === caseId);
+    if (!ticket) return;
+    
+    // Update ticket
+    ticket.status = 'Rejected';
+    ticket.rejectionReason = reason;
+    ticket.rejectionNotes = notes;
+    ticket.rejectionDate = new Date().toISOString();
+    
+    if (save()) {
+      renderAll();
+      showNotif('Ticket rejected successfully', 'success');
+      addToAuditTrail('Rejection', `Rejected ticket ${ticket.orderId} for reason: ${reason}`);
+      
+      // Send notifications if requested
+      if (sendEmail) {
+        // In a real app, this would send an actual email
+        console.log(`Sending rejection email for order ${ticket.orderId}`);
+      }
+      
+      if (sendWhatsApp) {
+        // In a real app, this would send an actual WhatsApp message
+        console.log(`Sending rejection WhatsApp for order ${ticket.orderId}`);
+      }
+      
+      bootstrap.Modal.getInstance(document.getElementById('rejectionModal')).hide();
+    }
+  });
+  
+  // ===== Sample Data =====
+  function addSample() {
+    const sampleTickets = [
+      {
+        id: Date.now() + 1,
+        orderId: 'ORD001',
+        orderDate: new Date().toISOString(),
+        branch: 'Crispy Chicken Khalidiya',
+        platform: 'Noon',
+        issue: 'Missing item in order - requested extra fries but not received',
+        originalAmount: 45.00,
+        compensation: 15.00,
+        status: 'Open',
+        evidence: 'None',
+        refundedAmount: 0,
+        isRefunded: false,
+        noEvidence: true,
+        dateCreated: new Date().toISOString()
+      },
+      {
+        id: Date.now() + 2,
+        orderId: 'ORD002',
+        orderDate: new Date(Date.now() - 86400000).toISOString(), // Yesterday
+        branch: 'Crispy Chicken Muroor',
+        platform: 'Careem',
+        issue: 'Spilled drink during delivery - packaging was not secure',
+        originalAmount: 32.50,
+        compensation: 10.00,
+        status: 'Sent',
+        evidence: 'https://example.com/evidence1.jpg',
+        refundedAmount: 0,
+        isRefunded: false,
+        noEvidence: false,
+        dateCreated: new Date(Date.now() - 86400000).toISOString()
+      },
+      {
+        id: Date.now() + 3,
+        orderId: 'ORD003',
+        orderDate: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+        branch: 'Crispy Chicken Shabiya 11',
+        platform: 'Noon',
+        issue: 'Late delivery - order arrived 45 minutes after estimated time',
+        originalAmount: 58.75,
+        compensation: 20.00,
+        status: 'Closed',
+        evidence: 'None',
+        refundedAmount: 0,
+        isRefunded: false,
+        noEvidence: true,
+        dateCreated: new Date(Date.now() - 172800000).toISOString()
+      },
+      {
+        id: Date.now() + 4,
+        orderId: 'ORD004',
+        orderDate: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
+        branch: 'Crispy Chicken Al Barsha',
+        platform: 'Careem',
+        issue: 'Wrong order received - requested spicy chicken but got regular',
+        originalAmount: 42.30,
+        compensation: 15.00,
+        status: 'Rejected',
+        evidence: 'https://example.com/evidence2.jpg',
+        refundedAmount: 0,
+        isRefunded: false,
+        noEvidence: false,
+        rejectionReason: 'incorrect_claim',
+        rejectionNotes: 'Customer claimed wrong order but evidence shows correct order was delivered',
+        rejectionDate: new Date(Date.now() - 259200000).toISOString(),
+        dateCreated: new Date(Date.now() - 259200000).toISOString()
+      },
+      {
+        id: Date.now() + 5,
+        orderId: 'ORD005',
+        orderDate: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
+        branch: 'Crispy Chicken Al Satwa',
+        platform: 'Noon',
+        issue: 'Food quality issue - chicken was undercooked',
+        originalAmount: 65.00,
+        compensation: 30.00,
+        status: 'Closed',
+        evidence: 'None',
+        refundedAmount: 30.00,
+        isRefunded: true,
+        refundDate: new Date(Date.now() - 345600000).toISOString(),
+        noEvidence: true,
+        dateCreated: new Date(Date.now() - 345600000).toISOString()
+      },
+      {
+        id: Date.now() + 6,
+        orderId: 'ORD006',
+        orderDate: new Date(Date.now() - 432000000).toISOString(), // 5 days ago
+        branch: 'Crispy Chicken Electra',
+        platform: 'Careem',
+        issue: 'Missing dipping sauces - requested extra sauces but not included',
+        originalAmount: 38.90,
+        compensation: 5.00,
+        status: 'Open',
+        evidence: 'None',
+        refundedAmount: 0,
+        isRefunded: false,
+        noEvidence: true,
+        dateCreated: new Date(Date.now() - 432000000).toISOString()
+      },
+      {
+        id: Date.now() + 7,
+        orderId: 'ORD007',
+        orderDate: new Date(Date.now() - 518400000).toISOString(), // 6 days ago
+        branch: 'Crispy Chicken Hamdan',
+        platform: 'Noon',
+        issue: 'Damaged packaging - box was crushed and food was spilled',
+        originalAmount: 72.50,
+        compensation: 25.00,
+        status: 'Sent',
+        evidence: 'https://example.com/evidence3.jpg',
+        refundedAmount: 0,
+        isRefunded: false,
+        noEvidence: false,
+        dateCreated: new Date(Date.now() - 518400000).toISOString()
+      },
+      {
+        id: Date.now() + 8,
+        orderId: 'ORD008',
+        orderDate: new Date(Date.now() - 604800000).toISOString(), // 7 days ago
+        branch: 'Crispy Chicken-Al Khalidiya',
+        platform: 'Careem',
+        issue: 'Cold food - order arrived cold and not fresh',
+        originalAmount: 55.75,
+        compensation: 20.00,
+        status: 'Closed',
+        evidence: 'None',
+        refundedAmount: 20.00,
+        isRefunded: true,
+        refundDate: new Date(Date.now() - 604800000).toISOString(),
+        noEvidence: true,
+        dateCreated: new Date(Date.now() - 604800000).toISOString()
+      }
+    ];
+    
+    tickets = [...tickets, ...sampleTickets];
+    if (save()) {
+      renderAll();
+      showNotif('Sample data added successfully', 'success');
+      addToAuditTrail('Data Management', 'Added sample tickets');
+    }
+  }
+  
+  // ===== Export Functions =====
+  function exportExcel() {
+    const data = filteredTickets();
+    const ws = XLSX.utils.json_to_sheet(data.map(t => ({
+      'Order ID': t.orderId,
+      'Order Date': formatDateISO(t.orderDate),
+      'Branch': t.branch,
+      'Platform': t.platform,
+      'Issue': t.issue,
+      'Original Amount': t.originalAmount,
+      'Compensation': t.compensation,
+      'Status': t.status,
+      'Evidence': t.evidence,
+      'Refunded Amount': t.refundedAmount || 0,
+      'Is Refunded': t.isRefunded ? 'Yes' : 'No',
+      'Refund Date': t.refundDate || '',
+      'Date Created': formatDateISO(t.dateCreated)
+    })));
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Compensation Tickets');
+    
+    const fileName = `crispy_tickets_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    
+    showNotif('Excel file exported successfully', 'success');
+    addToAuditTrail('Export', 'Exported tickets to Excel');
+  }
+  
+  function exportCSV() {
+    const data = filteredTickets();
+    const headers = ['Order ID', 'Order Date', 'Branch', 'Platform', 'Issue', 'Original Amount', 'Compensation', 'Status', 'Evidence', 'Refunded Amount', 'Is Refunded', 'Refund Date', 'Date Created'];
+    
+    let csvContent = headers.join(',') + '\n';
+    
+    data.forEach(t => {
+      const row = [
+        `"${t.orderId}"`,
+        `"${formatDateISO(t.orderDate)}"`,
+        `"${t.branch}"`,
+        `"${t.platform}"`,
+        `"${t.issue.replace(/"/g, '""')}"`,
+        t.originalAmount,
+        t.compensation,
+        `"${t.status}"`,
+        `"${t.evidence}"`,
+        t.refundedAmount || 0,
+        t.isRefunded ? 'Yes' : 'No',
+        `"${t.refundDate || ''}"`,
+        `"${formatDateISO(t.dateCreated)}"`
+      ];
+      
+      csvContent += row.join(',') + '\n';
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `crispy_tickets_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    
+    showNotif('CSV file exported successfully', 'success');
+    addToAuditTrail('Export', 'Exported tickets to CSV');
+  }
+  
+  function exportJSON() {
+    const data = filteredTickets();
+    const jsonContent = JSON.stringify(data, null, 2);
+    
+    const blob = new Blob([jsonContent], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `crispy_tickets_${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    
+    showNotif('JSON file exported successfully', 'success');
+    addToAuditTrail('Export', 'Exported tickets to JSON');
+  }
+  
+  function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.text('Crispy Chicken - Compensation Tickets Report', 105, 15, { align: 'center' });
+    
+    // Add date
+    doc.setFontSize(12);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 25, { align: 'center' });
+    
+    // Add table headers
+    doc.setFontSize(10);
+    doc.text('Order ID', 20, 40);
+    doc.text('Date', 50, 40);
+    doc.text('Branch', 80, 40);
+    doc.text('Platform', 110, 40);
+    doc.text('Amount', 140, 40);
+    doc.text('Status', 170, 40);
+    
+    // Add table data
+    let yPosition = 50;
+    const data = filteredTickets().slice(0, 20); // Limit to 20 tickets for PDF
+    
+    data.forEach(ticket => {
+      if (yPosition > 270) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      doc.text(ticket.orderId, 20, yPosition);
+      doc.text(formatDateISO(ticket.orderDate).split(',')[0], 50, yPosition);
+      doc.text(ticket.branch.substring(0, 15), 80, yPosition);
+      doc.text(ticket.platform, 110, yPosition);
+      doc.text(`AED ${ticket.originalAmount}`, 140, yPosition);
+      doc.text(ticket.status, 170, yPosition);
+      
+      yPosition += 10;
+    });
+    
+    doc.save(`crispy_tickets_${new Date().toISOString().slice(0, 10)}.pdf`);
+    
+    showNotif('PDF file exported successfully', 'success');
+    addToAuditTrail('Export', 'Exported tickets to PDF');
+  }
+  
+  function exportDashboardSummary() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.text('Crispy Chicken - Dashboard Summary', 105, 15, { align: 'center' });
+    
+    // Add date
+    doc.setFontSize(12);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 25, { align: 'center' });
+    
+    // Add statistics
+    doc.setFontSize(14);
+    doc.text('Statistics', 20, 40);
+    
+    doc.setFontSize(10);
+    doc.text(`Total Cases: ${tickets.length}`, 20, 50);
+    doc.text(`Open Cases: ${tickets.filter(t => t.status === 'Open').length}`, 20, 60);
+    doc.text(`Sent Cases: ${tickets.filter(t => t.status === 'Sent').length}`, 20, 70);
+    doc.text(`Closed Cases: ${tickets.filter(t => t.status === 'Closed').length}`, 20, 80);
+    doc.text(`Rejected Cases: ${tickets.filter(t => t.status === 'Rejected').length}`, 20, 90);
+    
+    // Add financial summary
+    doc.setFontSize(14);
+    doc.text('Financial Summary', 20, 110);
+    
+    doc.setFontSize(10);
+    doc.text(`Total Original Amount: AED ${tickets.reduce((sum, t) => sum + (t.originalAmount || 0), 0).toFixed(2)}`, 20, 120);
+    doc.text(`Total Compensation: AED ${tickets.reduce((sum, t) => sum + (t.compensation || 0), 0).toFixed(2)}`, 20, 130);
+    doc.text(`Total Refunded: AED ${tickets.reduce((sum, t) => sum + (t.refundedAmount || 0), 0).toFixed(2)}`, 20, 140);
+    doc.text(`Net Compensation: AED ${(tickets.reduce((sum, t) => sum + (t.compensation || 0), 0) - tickets.reduce((sum, t) => sum + (t.refundedAmount || 0), 0)).toFixed(2)}`, 20, 150);
+    
+    // Add platform summary
+    doc.setFontSize(14);
+    doc.text('Platform Summary', 20, 170);
+    
+    doc.setFontSize(10);
+    doc.text(`Noon Cases: ${tickets.filter(t => t.platform === 'Noon').length}`, 20, 180);
+    doc.text(`Careem Cases: ${tickets.filter(t => t.platform === 'Careem').length}`, 20, 190);
+    doc.text(`Noon Compensation: AED ${tickets.filter(t => t.platform === 'Noon').reduce((sum, t) => sum + (t.compensation || 0), 0).toFixed(2)}`, 20, 200);
+    doc.text(`Careem Compensation: AED ${tickets.filter(t => t.platform === 'Careem').reduce((sum, t) => sum + (t.compensation || 0), 0).toFixed(2)}`, 20, 210);
+    
+    doc.save(`crispy_dashboard_${new Date().toISOString().slice(0, 10)}.pdf`);
+    
+    showNotif('Dashboard summary exported successfully', 'success');
+    addToAuditTrail('Export', 'Exported dashboard summary to PDF');
+  }
+  
+  function printReport() {
+    window.print();
+    addToAuditTrail('Print', 'Printed tickets report');
+  }
+  
+  // ===== Heatmap =====
+  function initHeatmap() {
+    heatmapInstance = h337.create({
+      container: heatmapContainer,
+      radius: 25,
+      maxOpacity: 0.5,
+      minOpacity: 0,
+      blur: 0.75
+    });
+    
+    heatmapContainer.style.display = 'none';
+    heatmapContainer.style.position = 'fixed';
+    heatmapContainer.style.top = '0';
+    heatmapContainer.style.left = '0';
+    heatmapContainer.style.width = '100%';
+    heatmapContainer.style.height = '100%';
+    heatmapContainer.style.pointerEvents = 'none';
+    heatmapContainer.style.zIndex = '9998';
+  }
+  
+  function toggleHeatmap() {
+    heatmapVisible = !heatmapVisible;
+    
+    if (heatmapVisible) {
+      heatmapContainer.style.display = 'block';
+      document.getElementById('heatmapToggleBtn').classList.add('active');
+      addToAuditTrail('Heatmap', 'Enabled interaction heatmap');
+    } else {
+      heatmapContainer.style.display = 'none';
+      document.getElementById('heatmapToggleBtn').classList.remove('active');
+      addToAuditTrail('Heatmap', 'Disabled interaction heatmap');
+    }
+  }
+  
+  function recordInteraction(x, y) {
+    if (!heatmapVisible) return;
+    
+    interactions.push({ x, y, value: 1 });
+    
+    // Keep only last 100 interactions
+    if (interactions.length > 100) {
+      interactions.shift();
+    }
+    
+    heatmapInstance.setData({
+      max: 5,
+      data: interactions
+    });
+  }
+  
+  function exportUsabilityLog() {
+    const logContent = JSON.stringify(interactions, null, 2);
+    const blob = new Blob([logContent], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `usability_log_${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    
+    showNotif('Usability log exported successfully', 'success');
+    addToAuditTrail('Export', 'Exported usability log');
+  }
+  
+  // ===== Dock & Listeners =====
+  function setupListeners() {
+    // Dock toggle
+    dockToggle.addEventListener('click', () => {
+      dockPanel.classList.toggle('show');
+      dockToggle.setAttribute('aria-expanded', dockPanel.classList.contains('show'));
+      addToAuditTrail('UI Interaction', 'Toggled dock panel');
+    });
+    
+    // Close dock when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!dock.contains(e.target) && dockPanel.classList.contains('show')) {
+        dockPanel.classList.remove('show');
+        dockToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+    
+    // Record interactions for heatmap
+    document.addEventListener('click', (e) => {
+      recordInteraction(e.clientX, e.clientY);
+    });
+    
+    // Search and filter listeners
+    searchInput.addEventListener('input', renderTickets);
+    filterBranch.addEventListener('change', renderTickets);
+    filterPlatform.addEventListener('change', renderTickets);
+    filterStatus.addEventListener('change', renderTickets);
+    
+    // Make dock draggable
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let xOffset = 0;
+    let yOffset = 0;
+    
+    dock.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+    
+    function dragStart(e) {
+      if (e.target === dockToggle || e.target.closest('#dockPanel')) return;
+      
+      initialX = e.clientX - xOffset;
+      initialY = e.clientY - yOffset;
+      
+      if (e.target === dock || e.target.parentElement === dock) {
+        isDragging = true;
+        dock.style.cursor = 'grabbing';
+      }
+    }
+    
+    function drag(e) {
+      if (isDragging) {
+        e.preventDefault();
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+        
+        xOffset = currentX;
+        yOffset = currentY;
+        
+        dock.style.transform = `translate(${currentX}px, ${currentY}px)`;
+      }
+    }
+    
+    function dragEnd(e) {
+      initialX = currentX;
+      initialY = currentY;
+      isDragging = false;
+      dock.style.cursor = 'grab';
+    }
+  }
+  
+  // ===== Reset =====
+  function resetAll() {
+    if (confirm('Are you sure you want to reset all data? This action cannot be undone.')) {
+      tickets = [];
+      auditTrail = [];
+      interactions.length = 0;
+      
+      localStorage.removeItem('crispyTickets');
+      localStorage.removeItem('crispyAudit');
+      
+      renderAll();
+      showNotif('All data has been reset', 'success');
+      addToAuditTrail('System', 'Reset all data');
+    }
+  }
+  
+  // ===== Utility Functions =====
+  function escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+  }
+  </script>
+</body>
+</html>
